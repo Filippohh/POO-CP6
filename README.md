@@ -399,3 +399,144 @@ conserta antes de abrir; as 2h doeram menos do que a taxa doeria. **🔥+1 💰+
 
 ---
 
+# 📝 Pós-Mortem · Relatório de Incidente
+
+**Incidente:** madrugada de plantão pré-Black Friday no FiapBank (qui 19h → sex 08h)
+**Sistema:** API Spring Boot do FiapBank (`TransferenciaService`, `ContaFactory`,
+`GeradorNumeroConta`, `ContaRepository`)
+**Gravidade:** alta (dinheiro de cliente, segurança, conformidade com o Bacen)
+**Resultado:** campanha aberta às **10h** (2h de atraso), sem cobrança indevida, sem
+dados vazados. Placar final 🔥 9 · 💰 95 · 🧹 −1, perfil **A Noite dos Heróis**.
+
+## 1. Linha do tempo da madrugada
+
+| Relógio | Evento | Mecanismo (aula) | O que o grupo fez |
+|---|---|---|---|
+| qui 19h12 | **R1** · saldo negativo após transferências | exceção engolida pelo `catch` (Aula 11) | C · corrigiu + `assertThrows` |
+| 20h10 | ⚡A · busca por titular vazia | `==` entre Strings × derived query (Aulas 2 e 13) | não participou (R1 ≠ D) |
+| 21h02 | **R2** · SQL injection no busca-por-titular | concatenação de SQL × parâmetros vinculados (Aulas 12 e 13) | D · derived query `findByTitular` |
+| 22h40 | ⚡B · pool de conexões esgotado | conexão sem `close()` / try-with-resources (Aula 12) | não participou (R2 ≠ A) |
+| 22h50 | **R3** · duas contas com o número 1001 | Singleton sem instância guardada (Aula 14) | A · guardou a instância |
+| sex 00h47 | **R4** · comprovante com origem/destino invertidos | registro invertido na entidade gravada (Aula 13) | A · corrigiu a gravação, sem reprocessar |
+| 01h30 | **R5** · "Entity must not be null" na Universitária | factory com `return null` (Aulas 8, 11 e 14) | A · fail-fast na factory |
+| 02h20 | ⚡C · cadastro com só nome e saldo | telescópio de construtores × Builder (Aula 14) | B · Builder com defaults |
+| 03h20 | ⚡D · teste verde sem assert | teste sem assert (Aula 15) | não participou (R2 ≠ A/C) |
+| 03h45 | **R6** · `tedDeveCobrarTaxaDe5Reais` vermelho | contrato × código, `@Disabled` (Aula 15) | A · `@Disabled` e subiu na janela |
+| 05h58 | ⚡E · "a taxa é 5 ou 50?" | o teste desligado tinha a resposta (Aula 15) | C · reativou e rodou o teste |
+| 06h15 | **R7** · Go/No-Go da Black Friday | — | B · corrigiu + suíte verde, abriu 10h |
+| 07h00 | Epílogo | — | placar congelado: A Noite dos Heróis |
+
+## 2. O caminho do grupo
+
+| Rodada | Escolha | O que ela causou | 🔥 | 💰 | 🧹 | Placar após |
+|---|---|---|---|---|---|---|
+| R1 | C | +40 min e 8 clientes afetados, mas a invariante "saldo nunca negativo" ganhou teste | +1 | +35 | −1 | 6 · 35 · −1 |
+| ⚡A | — | não participou | | | | 6 · 35 · −1 |
+| R2 | D | injeção morta com a abstração que já existia; nenhum JDBC novo, então o ⚡B não nos atingiu | 0 | 0 | −1 | 6 · 35 · −2 |
+| ⚡B | — | não participou | | | | 6 · 35 · −2 |
+| R3 | A | números únicos a partir das 23h20; a sequence no banco ficou para segunda | +1 | +5 | 0 | 7 · 40 · −2 |
+| R4 | A | extratos novos certos, **histórico antigo segue invertido** (dívida de dados) | +1 | +15 | +1 | 8 · 55 · −1 |
+| R5 | A | erro claro na origem; a campanha Universitária recebeu um "não" honesto | −1 | 0 | 0 | 7 · 55 · −1 |
+| ⚡C | B | Builder concentrou defaults e validação, telescópio evitado | | | 0 | 7 · 55 · −1 |
+| ⚡D | — | não participou | | | | 7 · 55 · −1 |
+| R6 | A | **alarme desligado**: subiu na janela com a taxa de R$ 50 no ar e a suíte doente | 0 | 0 | +1 | 7 · 55 · 0 |
+| ⚡E | C | o teste reativado provou a cobrança indevida antes da imprensa | +1 | | | 8 · 55 · 0 |
+| R7 | B | taxa corrigida, suíte verde de verdade, abertura às 10h | +1 | +40 | −1 | **9 · 95 · −1** |
+
+**Pior momento:** 03h45 (R6). Com o relógio correndo, escolhemos desligar o único teste
+que dizia a verdade sobre a taxa. Por duas horas, um bug que cobra 10× do cliente ficou no
+ar com a suíte "verde".
+
+**Melhor momento:** 05h58 (⚡E). Em vez de responder de memória, rodamos o teste. O mesmo
+teste que tínhamos silenciado salvou o banco de confirmar em público uma cobrança indevida.
+
+## 3. Causa raiz de 2 incidentes
+
+### Incidente R1 · O saldo que virou negativo: **exceção engolida** (Aula 11)
+
+- **Sintoma:** `POST /api/transferencias` devolvia sucesso para transferências sem saldo;
+  um cliente ficou com −R$ 8.940.
+- **Mecanismo:** dentro de `TransferenciaService.realizar()`, a regra
+  `if (origem.getSaldo() < valor + taxa) throw new SaldoInsuficienteException(...)` estava
+  dentro de um `try` cujo `catch (SaldoInsuficienteException e)` era **vazio** (só um
+  comentário de "cliente especial"). Uma exceção serve para interromper o fluxo e
+  propagar o erro até quem pode tratá-lo; capturada e ignorada no mesmo método, ela vira
+  um não-evento, e a linha seguinte (`origem.debitar(valor + taxa)`) roda **sempre**.
+- **Por que passou:** não havia teste para o caminho de erro. O caminho feliz funcionava,
+  como nos bugs escondidos da CP 5 (bug07: catch genérico devolvendo `null`).
+- **Correção:** remover o `try/catch`; a exceção sobe até o controller, que responde com
+  erro. Teste `assertThrows(SaldoInsuficienteException.class, ...)` +
+  `verify(repository, never()).save(any())`.
+- **Prevenção:** regra de revisão: **`catch` vazio não passa no code review**. Se uma
+  exceção é capturada, ela é tratada, relançada ou logada com motivo.
+
+### Incidente R6 · O teste vermelho às 03h45: **contrato × código + `@Disabled`** (Aula 15)
+
+- **Sintoma:** `TransferenciaServiceTest.tedDeveCobrarTaxaDe5Reais` →
+  `expected: <5.0> but was: <50.0>`, 15 min antes do congelamento.
+- **Mecanismo:** o teste é o **contrato executável** com o cliente (TED = R$ 5,00). O
+  serviço tinha `double taxa = 50.00`, um **número mágico** sem constante e sem comentário,
+  então ninguém sabia se 50 era intenção ou erro de digitação. Diante do conflito, a
+  pergunta certa é "quem está errado, o contrato ou o código?". Nós respondemos "depois" e
+  usamos `@Disabled`, que faz o JUnit **pular** o teste: a suíte fica verde porque **não
+  roda** a verificação, não porque o código está certo. É um alarme desligado, parente
+  do teste sem assert do ⚡D.
+- **Por que passou:** a pressão da janela das 04h e a falta de uma regra de "suíte
+  vermelha bloqueia o deploy".
+- **Correção (R7):** `@Disabled` removido; `private static final double TAXA_TED = 5.00`
+  com comentário apontando o contrato; a suíte voltou a 0 falhas **sem alterar o valor
+  esperado do teste**.
+- **Prevenção:** pipeline que **falha se houver `@Disabled` sem issue vinculada**;
+  constantes nomeadas para todo valor de regra de negócio (taxas, limites).
+
+## 4. O que faríamos diferente (2 rodadas)
+
+### R6 · faríamos **B** (investigar e perder a janela) em vez de A
+
+Desligar o teste custou 🧹+1 na hora e quase custou a reputação do banco às 05h58. Se
+tivéssemos escolhido B às 03h45, a investigação teria revelado ali que o contrato diz R$ 5.
+Teríamos perdido a janela (🔥−1 💰+30), mas a suíte ficaria saudável, o ⚡E nem nos
+atingiria e a R7 seria decidida na coluna saudável. A lição: **teste vermelho é
+informação, não obstáculo**. Quando o código e o contrato divergem, a dúvida se resolve
+antes do deploy, não com o alarme desligado.
+
+### R4 · faríamos **B** (corrigir + reprocessar os extratos) em vez de A
+
+A minoria (Isabella e Gabriel) tinha razão. Ganhamos 🔥+1 com A, mas deixamos o histórico
+de comprovantes invertido. Em banco, extrato é documento: reprocessar levaria ~2h às 00h47,
+num horário em que ainda havia folga, e entregaria integridade total (🧹−1 em vez de +1).
+Agora a auditoria pós-BF vai encontrar comprovantes errados, e corrigir dado histórico
+depois que o cliente já baixou o PDF é bem mais caro. A lição: **corrigir o código não
+corrige os dados que ele já gravou**.
+
+## 5. Ações de acompanhamento (segunda-feira)
+
+| # | Ação | Origem |
+|---|---|---|
+| 1 | Reprocessar os extratos gravados invertidos antes da R4 e reemitir comprovantes | R4 |
+| 2 | Migrar a numeração de contas para uma sequence do banco | R3 |
+| 3 | Implementar a `Universitaria` na `ContaFactory` (com teste) | R5 |
+| 4 | Quebrar o `TransferenciaService` (validação, cálculo de taxa, gravação de extrato) | R7 |
+| 5 | CI bloqueando deploy com suíte vermelha ou `@Disabled` sem justificativa | R6 |
+
+## 6. Apresentação relâmpago (roteiro de 2 a 3 min): "a madrugada do Debug Dogs"
+
+1. **(20 s) Abertura:** "Começamos a noite com 🔥5 e terminamos com 🔥9: A Noite dos
+   Heróis. Mas teve um momento em que quase viramos manchete."
+2. **(40 s) Caminho:** R1, corrigimos com teste; R2, derived query; R3, o mesmo singleton
+   da CP 5; R4, corrigimos a gravação mas não o histórico; R5, fail-fast; ⚡C, Builder.
+3. **(40 s) Pior momento:** 03h45, `@Disabled` no teste da taxa para não perder a janela.
+   Às 05h58 a jornalista ligou, e foi esse teste, religado, que deu a resposta em 1 minuto.
+4. **(40 s) Maior lição:** teste vermelho é informação. O `@Disabled` não conserta o bug,
+   só desliga o alarme. E corrigir o código não corrige os dados já gravados (R4).
+5. **(10 s) Fechamento:** a palavra da madrugada.
+
+## 7. Uma palavra que resume a madrugada
+
+# **Evidência.**
+
+> Toda decisão boa da noite veio de evidência (o `assertThrows` da R1, o teste rodado no
+> ⚡E). A pior veio de desligar a evidência (o `@Disabled` da R6).
+
+*O banco abriu às 10h.* ⏰
+
