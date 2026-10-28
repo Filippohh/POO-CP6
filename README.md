@@ -37,6 +37,7 @@
 | R3 · 22h50 | A | 🔥+1 💰+5 🧹0 | 7 | 40 | −2 |
 | R4 · 00h47 | A | 🔥+1 💰+15 🧹+1 | 8 | 55 | −1 |
 | R5 · 01h30 | A | 🔥−1 💰0 🧹0 | 7 | 55 | −1 |
+| ⚡C · 02h20 | B | 🧹0 | 7 | 55 | −1 |
 
 ---
 
@@ -229,6 +230,34 @@ o erro nasce e morre no mesmo lugar (~30 min). A campanha recebe um "não" claro
 **🔥−1 💰0 🧹0**
 
 **Placar:** 🔥 7 · 💰 55 · 🧹 −1
+
+---
+
+## ⚡ EVENTO RELÂMPAGO C · O cadastro com metade dos campos (02h20)
+
+- **Participação:** **participamos** (R5 = A: a conta segue no ar e o marketing quer a
+  landing com só nome e saldo).
+- **Condutor:** Gustavo
+- **Voto:** B (6 × 0)
+- **Decisão:** **B) Builder com valores padrão**
+
+**Justificativa (mecanismo técnico):** **telescópio de construtores × Builder** (Aula 14).
+Cada combinação nova de campos pede mais um construtor sobrecarregado (A), e com vários
+parâmetros do mesmo tipo fica fácil passar argumentos na ordem errada (o mesmo
+mecanismo da R4). O Builder nomeia cada campo, concentra os **valores padrão** e valida
+tudo no `build()`, então o objeto só nasce válido. Aceitar `null` (C) espalha
+`NullPointerException` pelo sistema, como vimos na R5.
+
+```java
+Conta conta = new ContaBuilder()
+        .comTitular("Ana")
+        .comSaldo(0.0)
+        .build();   // tipo = CORRENTE por padrão; titular obrigatório validado aqui
+```
+
+**Consequência:** o Builder concentra defaults e validação no `build()`. **🧹0**
+
+**Placar:** sem alteração · 🔥 7 · 💰 55 · 🧹 −1
 
 ---
 
