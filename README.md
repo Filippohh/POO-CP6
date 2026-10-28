@@ -33,6 +33,8 @@
 | R1 · 19h12 | C | 🔥+1 💰+35 🧹−1 | 6 | 35 | −1 |
 | ⚡A · 20h10 | não participou | — | 6 | 35 | −1 |
 | R2 · 21h02 | D | 🔥0 💰0 🧹−1 | 6 | 35 | −2 |
+| ⚡B · 22h40 | não participou | — | 6 | 35 | −2 |
+| R3 · 22h50 | A | 🔥+1 💰+5 🧹0 | 7 | 40 | −2 |
 
 ---
 
@@ -111,6 +113,52 @@ List<Conta> contas = contaRepository.findByTitular(nome);
 código JDBC novo para manter. **🔥0 💰0 🧹−1**
 
 **Placar:** 🔥 6 · 💰 35 · 🧹 −2
+
+---
+
+## ⚡ EVENTO RELÂMPAGO B · As conexões que não fecham (22h40)
+
+- **Participação:** **não participamos** (só para quem escolheu A/PreparedStatement na
+  R2). Com a derived query, quem abre e fecha conexão é o pool gerenciado pelo Spring/JPA.
+- **Anotação do grupo:** o mecanismo é a **conexão que vaza sem `close()`** (Aula 12); a
+  correção seria **try-with-resources** fechando `Connection`, `Statement` e `ResultSet`.
+  Aumentar o pool (B) só adia o estouro.
+
+**Placar:** sem alteração · 🔥 6 · 💰 35 · 🧹 −2
+
+---
+
+## RODADA 3 · A noite das contas gêmeas (22h50)
+
+- **Tipo:** rodada
+- **Condutor:** Gabriel
+- **Voto:** A (4 × 2; Filippo e Isabella votaram D: "o banco é quem devia numerar")
+- **Decisão:** **A) Corrigir o `getInstancia` do singleton (guardar a instância)**
+
+**Justificativa (mecanismo técnico):** **Singleton sem instância guardada** (Aula 14). O
+`getInstancia()` fazia `return new GeradorNumeroConta()`: o atributo `static instancia`
+nunca era preenchido, cada chamada criava um gerador novo e o contador voltava a 1001.
+O padrão só funciona se a instância criada for **guardada** no atributo estático e
+devolvida nas próximas chamadas. É exatamente o bug01 que corrigimos na CP 5
+(`GeradorProtocolo`), então já sabíamos o conserto e o tempo que ele leva:
+
+```java
+public static synchronized GeradorNumeroConta getInstancia() {
+    if (instancia == null) {
+        instancia = new GeradorNumeroConta();
+    }
+    return instancia;
+}
+```
+
+O `synchronized` evita que duas requisições simultâneas criem dois geradores. A sequence
+no banco (D) é a arquitetura ideal e ficou anotada para segunda; às 22h50, uma migração de
+1h de madrugada era risco demais. UUID (B) quebraria o contrato de número sequencial.
+
+**Consequência:** o padrão volta a funcionar em ~30 min; números únicos a partir de agora.
+**🔥+1 💰+5 🧹0**
+
+**Placar:** 🔥 7 · 💰 40 · 🧹 −2
 
 ---
 
