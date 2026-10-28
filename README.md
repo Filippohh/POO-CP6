@@ -40,6 +40,7 @@
 | ⚡C · 02h20 | B | 🧹0 | 7 | 55 | −1 |
 | ⚡D · 03h20 | não participou | — | 7 | 55 | −1 |
 | R6 · 03h45 | A | 🔥0 💰0 🧹+1 | 7 | 55 | 0 |
+| ⚡E · 05h58 | C | 🔥+1 | 8 | 55 | 0 |
 
 ---
 
@@ -307,6 +308,36 @@ desligado. A taxa de R$ 50 segue no ar. **🔥0 💰0 🧹+1**
 **Estado da suíte após a R6:** 🟠 **DOENTE** (R6 = A)
 
 **Placar:** 🔥 7 · 💰 55 · 🧹 0
+
+---
+
+# Dia 3 · Go/No-Go + Pós-Mortem (sex 05h → 07h)
+
+## 🩺 Antes do Go/No-Go: o estado do grupo
+
+- **Placar em dia:** ✅ rodadas R1–R6 recuperadas e commitadas → 🔥 7 · 💰 55 · 🧹 0
+- **Estado da suíte:** 🟠 **doente**, definido pela R6 = A (`@Disabled` no teste da taxa)
+
+## ⚡ EVENTO RELÂMPAGO E · "A taxa é 5 ou 50?" (05h58)
+
+- **Participação:** **participamos** (suíte doente: R6 = A). A taxa de R$ 50 segue no ar e
+  uma jornalista perguntou ao gerente.
+- **Condutor:** Isabella
+- **Voto:** C (6 × 0, em 1 min)
+- **Decisão:** **C) Reproduzir com um teste antes de responder**
+
+**Justificativa (mecanismo técnico):** o teste que responde a pergunta **já existe**: é o
+`tedDeveCobrarTaxaDe5Reais` que desligamos com `@Disabled` (Aula 15). Responder pelo
+código (A) seria confirmar a cobrança indevida em público. Responder pela documentação sem
+conferir (B) é "chutar com autoridade". Tiramos o `@Disabled`, rodamos `./mvnw test` e
+pedimos ao gerente 1 minuto. O resultado foi `expected: <5.0> but was: <50.0>`: o contrato
+diz 5 e **o código está cobrando 50**. O gerente respondeu à jornalista: *"A TED custa
+R$ 5,00. Identificamos uma cobrança indevida e vamos corrigi-la antes da abertura."*
+
+**Consequência:** o teste dá evidência; a equipe entra no go/no-go sabendo da taxa.
+**🔥+1**
+
+**Placar:** 🔥 8 · 💰 55 · 🧹 0
 
 ---
 
