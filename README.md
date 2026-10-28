@@ -31,6 +31,8 @@
 |---|---|---|---|---|---|
 | Início | — | — | 5 | 0 | 0 |
 | R1 · 19h12 | C | 🔥+1 💰+35 🧹−1 | 6 | 35 | −1 |
+| ⚡A · 20h10 | não participou | — | 6 | 35 | −1 |
+| R2 · 21h02 | D | 🔥0 💰0 🧹−1 | 6 | 35 | −2 |
 
 ---
 
@@ -65,6 +67,50 @@ void deveRecusarTransferenciaQuandoSaldoInsuficiente() {
 `assertThrows` protegendo a invariante. **🔥+1 💰+35 🧹−1**
 
 **Placar:** 🔥 6 · 💰 35 · 🧹 −1
+
+---
+
+## ⚡ EVENTO RELÂMPAGO A · A busca que não acha ninguém (20h10)
+
+- **Participação:** **não participamos** (só para quem escolheu D/rollback na R1; nós
+  escolhemos C). Lemos a evidência: nossa busca por titular segue funcionando.
+- **Anotação do grupo:** o mecanismo é `==` entre `String`s (Aula 2), que compara
+  referência e não conteúdo; o certo é usar a derived query `findByTitular` (Aula 13),
+  que já existe no repository. A mesma armadilha do bug06 da CP 5.
+
+**Placar:** sem alteração · 🔥 6 · 💰 35 · 🧹 −1
+
+---
+
+## RODADA 2 · A injeção que derreteu o banco (21h02)
+
+- **Tipo:** rodada
+- **Condutor:** Isabella
+- **Voto:** D (4 × 2; Gustavo e Pam votaram A: "PreparedStatement sai 10 min antes")
+- **Decisão:** **D) Usar a derived query `findByTitular` (Spring Data JPA)**
+- **Desvio da carta:** não se aplica (não viemos do ⚡A escolhendo B).
+
+**Justificativa (mecanismo técnico):** **concatenação de SQL** (Aulas 12 e 13). Em
+`"... WHERE titular = '" + nome + "'"` o valor digitado pelo usuário vira **código SQL**:
+com `' OR '1'='1` o `WHERE` fica sempre verdadeiro e devolve todas as contas. A cura são os
+**parâmetros vinculados**: o valor vai separado do comando e nunca é interpretado como SQL.
+A (PreparedStatement) e D resolvem a injeção do mesmo jeito, mas D usa a abstração que o
+projeto já tinha: o `ContaRepository` com `findByTitular(String titular)`, que o Spring
+Data traduz para um JPQL parametrizado. Assim apagamos o JDBC na mão do controller
+(`Statement` aberto sem `close()`), em vez de reescrevê-lo às pressas. A blocklist (C) foi
+descartada na hora: quem filtra caractere perde para o próximo `' OR '2'='2`.
+
+```java
+// antes: SQL montado com o texto do usuário
+String sql = "SELECT * FROM contas WHERE titular = '" + nome + "'";
+// depois: o banco recebe o valor como parâmetro
+List<Conta> contas = contaRepository.findByTitular(nome);
+```
+
+**Consequência:** o caminho da arquitetura; ~50 min (mais que A), injeção morta, sem
+código JDBC novo para manter. **🔥0 💰0 🧹−1**
+
+**Placar:** 🔥 6 · 💰 35 · 🧹 −2
 
 ---
 
