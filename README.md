@@ -42,6 +42,7 @@
 | R6 · 03h45 | A | 🔥0 💰0 🧹+1 | 7 | 55 | 0 |
 | ⚡E · 05h58 | C | 🔥+1 | 8 | 55 | 0 |
 | R7 · 06h15 | B | 🔥+1 💰+40 🧹−1 | 9 | 95 | −1 |
+| **Final · 07h00** | **A Noite dos Heróis** | — | **9** | **95** | **−1** |
 
 ---
 
@@ -373,6 +374,28 @@ inteira por um problema que se corrige em 2h. Usamos as 2h para:
 conserta antes de abrir; as 2h doeram menos do que a taxa doeria. **🔥+1 💰+40 🧹−1**
 
 **Placar:** 🔥 9 · 💰 95 · 🧹 −1
+
+---
+
+## 🏁 Epílogo · Amanhece a Black Friday (07h00)
+
+### Placar final (congelado)
+
+| 🔥 Confiança | 💰 Prejuízo | 🧹 Dívida técnica | Suíte |
+|---|---|---|---|
+| **9** | **95** | **−1** | 🟢 verde de verdade (após a R7) |
+
+### Perfil da noite: **A Noite dos Heróis** 🦸
+
+| Critério | Nosso valor | Atende? |
+|---|---|---|
+| A Noite dos Heróis: 🔥 7 ou mais **e** 🧹 até 2 | 🔥 9 · 🧹 −1 | ✅ |
+| O Preço da Pressa: 💰 400 ou mais | 💰 95 | ❌ |
+| Firefighters Crônicos: 🧹 6 ou mais | 🧹 −1 | ❌ |
+
+> **Como amanhece o banco:** abriu às 10h, os clientes confiam e o time dorme (quase) em
+> paz. O "quase" vem da dívida de dados da R4 (extratos antigos invertidos) e da conta
+> Universitária que ainda não existe (R5).
 
 ---
 
