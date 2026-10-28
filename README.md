@@ -35,6 +35,7 @@
 | R2 · 21h02 | D | 🔥0 💰0 🧹−1 | 6 | 35 | −2 |
 | ⚡B · 22h40 | não participou | — | 6 | 35 | −2 |
 | R3 · 22h50 | A | 🔥+1 💰+5 🧹0 | 7 | 40 | −2 |
+| R4 · 00h47 | A | 🔥+1 💰+15 🧹+1 | 8 | 55 | −1 |
 
 ---
 
@@ -159,6 +160,39 @@ no banco (D) é a arquitetura ideal e ficou anotada para segunda; às 22h50, uma
 **🔥+1 💰+5 🧹0**
 
 **Placar:** 🔥 7 · 💰 40 · 🧹 −2
+
+---
+
+# Dia 2 · A Madrugada Aperta (sex 00h → 04h)
+
+## RODADA 4 · O comprovante que aponta pra pessoa errada (00h47)
+
+- **Tipo:** rodada
+- **Condutor:** Pedro
+- **Voto:** A (4 × 2; Isabella e Gabriel votaram B: "corrigir sem reprocessar deixa a
+  auditoria com dados errados")
+- **Decisão:** **A) Corrigir a gravação e seguir (histórico antigo fica errado)**
+
+**Justificativa (mecanismo técnico):** **registro invertido na entidade gravada** (Aula 13).
+O construtor `Transferencia(tipo, numeroOrigem, numeroDestino, valor, taxa)` recebia
+`destino.getNumero(), origem.getNumero()` (argumentos trocados). Como os dois são `int`,
+o compilador aceita qualquer ordem: os saldos ficam certos (o débito e o crédito usam os
+objetos), mas a entidade persistida pelo JPA guarda o extrato ao contrário. O conserto é
+uma linha:
+
+```java
+Transferencia extrato = new Transferencia(tipo,
+        origem.getNumero(), destino.getNumero(), valor, taxa);
+```
+
+A maioria escolheu A pela pressão do relógio: corrige os novos extratos em 30 min e
+guarda as 2h de reprocessamento para depois da BF. A minoria avisou que estávamos
+empurrando uma dívida de dados para a auditoria (voltamos a isso no pós-mortem).
+
+**Consequência:** novos extratos certos em 30 min; o histórico gravado até agora segue
+invertido, dívida de dados para a auditoria pós-BF. **🔥+1 💰+15 🧹+1**
+
+**Placar:** 🔥 8 · 💰 55 · 🧹 −1
 
 ---
 
