@@ -41,6 +41,7 @@
 | ⚡D · 03h20 | não participou | — | 7 | 55 | −1 |
 | R6 · 03h45 | A | 🔥0 💰0 🧹+1 | 7 | 55 | 0 |
 | ⚡E · 05h58 | C | 🔥+1 | 8 | 55 | 0 |
+| R7 · 06h15 | B | 🔥+1 💰+40 🧹−1 | 9 | 95 | −1 |
 
 ---
 
@@ -338,6 +339,40 @@ R$ 5,00. Identificamos uma cobrança indevida e vamos corrigi-la antes da abertu
 **🔥+1**
 
 **Placar:** 🔥 8 · 💰 55 · 🧹 0
+
+---
+
+## RODADA 7 · Go/No-Go da Black Friday (06h15)
+
+- **Tipo:** rodada final (go/no-go)
+- **Condutor:** Gabriel
+- **Estado da suíte na mesa:** 🟠 doente (R6 = A), mas com a taxa já confirmada pelo ⚡E
+- **Voto:** B (5 × 1; Pam votou C: "PIX no ar salva parte do faturamento já às 08h")
+- **Decisão:** **B) Corrigir o que a noite revelou + suíte verde, abrir 2h atrasado**
+
+**Justificativa (mecanismo técnico):** o Dev 3 apontou o padrão da noite: todo bug morou
+no `TransferenciaService`, 80 linhas que ninguém entende inteiras (exceção engolida na R1,
+extrato invertido na R4, taxa mágica na R6). Abrir 100% (A) com a suíte doente seria
+cobrar R$ 50 de cada TED no maior pico do ano, com o teste que prova o erro desligado.
+Desligar a TED (C) só esconde a taxa até segunda. Adiar a campanha (D) joga fora a BF
+inteira por um problema que se corrige em 2h. Usamos as 2h para:
+
+1. **Corrigir a taxa** e matar o número mágico (Clean Code, como o clean04 da CP 5):
+   ```java
+   private static final double TAXA_TED = 5.00;   // contrato com o cliente: TED = R$ 5,00
+   ```
+2. **Suíte verde de verdade:** `@Disabled` removido, `tedDeveCobrarTaxaDe5Reais` passa
+   sem mexer no valor esperado. O teste é o contrato e o código é que se ajusta a ele.
+3. **Revisar o `TransferenciaService` inteiro com a suíte rodando:** o `assertThrows` da
+   R1 seguiu verde e confirmamos o extrato com origem/destino na ordem certa (R4).
+
+`./mvnw test` → `Tests run: 14, Failures: 0, Skipped: 0` (13 originais + o
+`assertThrows` da R1).
+
+**Consequência (coluna suíte DOENTE):** ao revisar o serviço, o time enxerga a taxa 50 e
+conserta antes de abrir; as 2h doeram menos do que a taxa doeria. **🔥+1 💰+40 🧹−1**
+
+**Placar:** 🔥 9 · 💰 95 · 🧹 −1
 
 ---
 
