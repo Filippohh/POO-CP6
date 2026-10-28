@@ -38,6 +38,8 @@
 | R4 · 00h47 | A | 🔥+1 💰+15 🧹+1 | 8 | 55 | −1 |
 | R5 · 01h30 | A | 🔥−1 💰0 🧹0 | 7 | 55 | −1 |
 | ⚡C · 02h20 | B | 🧹0 | 7 | 55 | −1 |
+| ⚡D · 03h20 | não participou | — | 7 | 55 | −1 |
+| R6 · 03h45 | A | 🔥0 💰0 🧹+1 | 7 | 55 | 0 |
 
 ---
 
@@ -258,6 +260,53 @@ Conta conta = new ContaBuilder()
 **Consequência:** o Builder concentra defaults e validação no `build()`. **🧹0**
 
 **Placar:** sem alteração · 🔥 7 · 💰 55 · 🧹 −1
+
+---
+
+## ⚡ EVENTO RELÂMPAGO D · O teste verde que não testa nada (03h20)
+
+- **Participação:** **não participamos** (só para quem escolheu A ou C na R2; nós
+  escolhemos D).
+- **Anotação do grupo:** **teste sem assert nenhum** (Aula 15). Um teste sem `assert` só
+  falha se lançar exceção: fica verde sem verificar nada. O certo seria
+  `assertEquals(150.0, conta.getSaldo(), 0.0001)` depois do `depositar(50.0)`.
+
+**Placar:** sem alteração · 🔥 7 · 💰 55 · 🧹 −1
+
+---
+
+## RODADA 6 · O teste vermelho às 03h45 (a janela fecha às 04h)
+
+- **Tipo:** rodada
+- **Condutor:** Filippo
+- **Voto:** A (4 × 2; Isabella e Pedro votaram B: "o teste está dizendo que a taxa do
+  contrato é 5")
+- **Decisão:** **A) `@Disabled` no teste e subir na janela**
+
+**Justificativa do grupo na hora (e mecanismo técnico):** é o conflito **contrato ×
+código** (Aula 15). O teste `tedDeveCobrarTaxaDe5Reais` é o contrato executável ("TED =
+R$ 5,00") e o serviço tem `double taxa = 50.00`, um número mágico sem constante e sem
+comentário. A maioria raciocinou que as correções da noite (R1, R3, R4, R5) **tinham** que
+subir antes do congelamento das 04h e que a taxa seria conferida com o gerente de manhã.
+Então desligamos o teste com motivo explícito em vez de apagá-lo ou mudar o esperado para
+50 (D, que faria a suíte confirmar o bug):
+
+```java
+@Disabled("conferir taxa da TED com o gerente: contrato diz 5.0, código diz 50.0")
+@Test
+void tedDeveCobrarTaxaDe5Reais() { ... }
+```
+
+O `@Disabled` não conserta nada: ele **desliga o alarme**. A suíte passa a ficar verde
+sem rodar justamente o teste que apontava o bug. Assumimos esse risco conscientemente,
+e ele ficou registrado aqui.
+
+**Consequência:** sobe na janela. O teste fica `@Disabled("conferir taxa...")`: alarme
+desligado. A taxa de R$ 50 segue no ar. **🔥0 💰0 🧹+1**
+
+**Estado da suíte após a R6:** 🟠 **DOENTE** (R6 = A)
+
+**Placar:** 🔥 7 · 💰 55 · 🧹 0
 
 ---
 
