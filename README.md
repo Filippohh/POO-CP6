@@ -36,6 +36,7 @@
 | ⚡B · 22h40 | não participou | — | 6 | 35 | −2 |
 | R3 · 22h50 | A | 🔥+1 💰+5 🧹0 | 7 | 40 | −2 |
 | R4 · 00h47 | A | 🔥+1 💰+15 🧹+1 | 8 | 55 | −1 |
+| R5 · 01h30 | A | 🔥−1 💰0 🧹0 | 7 | 55 | −1 |
 
 ---
 
@@ -193,6 +194,41 @@ empurrando uma dívida de dados para a auditoria (voltamos a isso no pós-mortem
 invertido, dívida de dados para a auditoria pós-BF. **🔥+1 💰+15 🧹+1**
 
 **Placar:** 🔥 8 · 💰 55 · 🧹 −1
+
+---
+
+## RODADA 5 · A fábrica que devolve null (01h30)
+
+- **Tipo:** rodada
+- **Condutor:** Pam
+- **Voto:** A (6 × 0)
+- **Decisão:** **A) Fail-fast: exceção clara na factory (tipo inválido)**
+
+**Justificativa (mecanismo técnico):** **factory com `return null` explodindo longe da
+causa** (Aulas 8, 11 e 14). O `default -> null` do `switch` na `ContaFactory` não falha
+onde o erro nasce: o `null` viaja pelo service e só explode no `save()` do repository,
+com `"Entity must not be null"`, uma mensagem que não cita o tipo de conta nem a factory.
+Fail-fast significa lançar a exceção **no ponto da causa**, com mensagem que diz o que
+aconteceu, e deixar o controller traduzir para 400:
+
+```java
+default -> throw new IllegalArgumentException("Tipo de conta inválido: " + tipo);
+```
+
+Validar no controller (B) espalha a regra: o próximo endpoint esquece e o `null` volta.
+Devolver CORRENTE (C) esconde o erro e entrega o produto errado. A factory é o único lugar
+que conhece todos os tipos, então a validação fica nela (como fizemos no `construir()` do
+builder na CP 5).
+
+> Decisão de produto anotada para o pós-mortem: o fail-fast acaba com o erro esquisito, mas
+> a UNIVERSITARIA continua sem implementação. Pedimos ao time um `case "UNIVERSITARIA"`
+> com a classe nova para segunda.
+
+**Consequência:** a factory rejeita na hora com "Tipo de conta inválido: UNIVERSITARIA";
+o erro nasce e morre no mesmo lugar (~30 min). A campanha recebe um "não" claro.
+**🔥−1 💰0 🧹0**
+
+**Placar:** 🔥 7 · 💰 55 · 🧹 −1
 
 ---
 
